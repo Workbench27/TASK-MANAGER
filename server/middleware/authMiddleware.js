@@ -1,32 +1,41 @@
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
-import User from "../models/userModel.js";
+import { db } from "../utils/connectDB.js"; // Adjust path as needed
 
 const protectRoute = asyncHandler(async (req, res, next) => {
-  let token = req.cookies.token;
+  const token = req.cookies.token;
 
-  if (token) {
-    try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+  if (!token) {
+    return res
+      .status(401)
+      .json({ status: false, message: "Not authorized. Try login again." });
+  }
 
-      const resp = await User.findById(decodedToken.userId).select(
-        "isAdmin email"
-      );
+  try {
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
-      req.user = {
-        email: resp.email,
-        isAdmin: resp.isAdmin,
-        userId: decodedToken.userId,
-      };
+    const [rows] = await db.promise().query(
+      "SELECT id, email, isAdmin FROM users WHERE id = ?",
+      [decodedToken.userId]
+    );
 
-      next();
-    } catch (error) {
-      console.error(error);
+    if (rows.length === 0) {
       return res
         .status(401)
-        .json({ status: false, message: "Not authorized. Try login again." });
+        .json({ status: false, message: "User not found." });
     }
-  } else {
+
+    const user = rows[0];
+
+    req.user = {
+      email: user.email,
+      isAdmin: user.isAdmin,
+      userId: user.id,
+    };
+
+    next();
+  } catch (error) {
+    console.error(error);
     return res
       .status(401)
       .json({ status: false, message: "Not authorized. Try login again." });
