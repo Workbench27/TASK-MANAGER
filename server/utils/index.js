@@ -1,5 +1,19 @@
 import jwt from "jsonwebtoken";
 
+// const createJWT = (res, userId) => {
+//   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+//     expiresIn: "1d",
+//   });
+
+//   res.cookie("token", token, {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV !== "development",
+//     sameSite: "none",
+//     maxAge: 24 * 60 * 60 * 1000, // 1 day
+//   });
+// };
+
+
 const createJWT = (res, userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: "1d",
@@ -7,10 +21,11 @@ const createJWT = (res, userId) => {
 
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
-    sameSite: "none",
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    secure: false, // only false for localhost development
+    sameSite: "lax", // change to 'none' only in production when using HTTPS
+    maxAge: 24 * 60 * 60 * 1000,
   });
 };
+
 
 export default createJWT;
