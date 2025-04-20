@@ -1,31 +1,57 @@
-import mysql from 'mysql2/promise';
+// import { Sequelize } from 'sequelize';
+// import dotenv from 'dotenv';
+
+// dotenv.config();
+
+// const sequelize = new Sequelize(
+//   process.env.MYSQL_DATABASE,
+//   process.env.MYSQL_USER,
+//   process.env.MYSQL_PASSWORD,
+//   {
+//     host: process.env.MYSQL_HOST,
+//     dialect: 'mysql',
+//     logging: false, // set to console.log to see raw queries
+//   }
+// );
+
+// const connectToDB = async () => {
+//   try {
+//     await sequelize.authenticate();
+//     console.log('✅ MySQL connected via Sequelize.');
+//   } catch (error) {
+//     console.error('❌ Unable to connect to the database:', error.message);
+//     throw error;
+//   }
+// };
+
+// export { sequelize, connectToDB };
+
+
+
+import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 
-dotenv.config(); // Load .env variables
+dotenv.config();  // Ensure this is at the top of the file to load environment variables.
 
-console.log("✅ ENV DEBUG:");
-console.log("MYSQL_HOST:", process.env.MYSQL_HOST);
-console.log("MYSQL_USER:", process.env.MYSQL_USER);
-console.log("MYSQL_PASSWORD:", process.env.MYSQL_PASSWORD);
-console.log("MYSQL_DATABASE:", process.env.MYSQL_DATABASE);
+const sequelize = new Sequelize(
+  process.env.MYSQL_DATABASE,  // Database name
+  process.env.MYSQL_USER,      // Username
+  process.env.MYSQL_PASSWORD,  // Password
+  {
+    host: process.env.MYSQL_HOST,  // Database host
+    dialect: 'mysql',
+    logging: false,  // Set this to true if you want to see SQL queries in the console
+  }
+);
 
-let db; // This will hold the connection
-
-const dbConnection = async () => {
+const connectToDB = async () => {
   try {
-    db = await mysql.createConnection({
-      host: process.env.MYSQL_HOST,
-      user: process.env.MYSQL_USER,
-      password: process.env.MYSQL_PASSWORD,
-      database: process.env.MYSQL_DATABASE,
-    });
-
-    console.log("✅ MySQL connected successfully.");
-  } catch (err) {
-    console.error("❌ MySQL connection failed:", err.message);
-    throw err;
+    await sequelize.authenticate();
+    console.log('✅ MySQL connected via Sequelize.');
+  } catch (error) {
+    console.error('❌ Unable to connect to the database:', error.message);
+    throw error;  // Ensure error is thrown so that the process can stop on failure
   }
 };
 
-export default dbConnection;
-export { db };
+export { sequelize, connectToDB };

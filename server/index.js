@@ -1,11 +1,13 @@
-import cookieParser from "cookie-parser";
-import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
-import morgan from "morgan";
+import dotenv from "dotenv";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 import { errorHandler, routeNotFound } from "./middleware/errorMiddleware.js";
 import routes from "./routes/index.js";
-import dbConnection from "./utils/connectDB.js";
+import { connectToDB } from "./utils/connectDB.js";
+import Task from './models/taskModel.js';
+import User from './models/userModel.js';
+import Notice from './models/notis.js';
 
 dotenv.config();
 
@@ -27,25 +29,21 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-// app.use(morgan("dev"));
 
+// Main API routes
 app.use("/api", routes);
+
+// Error handlers
 app.use(routeNotFound);
 app.use(errorHandler);
 
 const startServer = async () => {
   try {
-    await dbConnection();
+    await connectToDB();
 
-    app.listen(port, () =>
-      console.log(`🚀 Server listening on http://localhost:${port}`)
-    );
-
-    console.log("✅ ENV DEBUG:");
-    console.log("MYSQL_HOST:", process.env.MYSQL_HOST);
-    console.log("MYSQL_USER:", process.env.MYSQL_USER);
-    console.log("MYSQL_PASSWORD:", process.env.MYSQL_PASSWORD);
-    console.log("MYSQL_DATABASE:", process.env.MYSQL_DATABASE);
+    app.listen(port, () => {
+      console.log(`🚀 Server listening on http://localhost:${port}`);
+    });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);
@@ -53,3 +51,4 @@ const startServer = async () => {
 };
 
 startServer();
+export { Task, User, Notice };

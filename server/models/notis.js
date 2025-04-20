@@ -1,16 +1,25 @@
-import mongoose, { Schema } from "mongoose";
+import { DataTypes } from 'sequelize';
 
-const noticeSchema = new Schema(
-  {
-    team: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    text: { type: String },
-    task: { type: Schema.Types.ObjectId, ref: "Task" },
-    notiType: { type: String, default: "alert", enum: ["alert", "message"] },
-    isRead: [{ type: Schema.Types.ObjectId, ref: "User" }],
-  },
-  { timestamps: true }
-);
+export default (sequelize) => {
+  const Notice = sequelize.define('Notice', {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    text: {
+      type: DataTypes.TEXT,
+    },
+    notiType: {
+      type: DataTypes.ENUM('alert', 'message'),
+      defaultValue: 'alert',
+    }
+  }, {
+    tableName: 'notices',
+    timestamps: true,
+    updatedAt: 'updated_at',
+    createdAt: 'created_at',
+  });
 
-const Notice = mongoose.model("Notice", noticeSchema);
-
-export default Notice;
+  return Notice;
+};

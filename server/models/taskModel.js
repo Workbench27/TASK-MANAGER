@@ -1,55 +1,40 @@
-import mongoose, { Schema } from "mongoose";
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../utils/connectDB.js'; // your Sequelize instance
 
-const taskSchema = new Schema(
-  {
-    title: { type: String, required: true },
-    date: { type: Date, default: new Date() },
-    priority: {
-      type: String,
-      default: "normal",
-      enum: ["high", "medium", "normal", "low"],
-    },
-    stage: {
-      type: String,
-      default: "todo",
-      enum: ["todo", "in progress", "completed"],
-    },
-    activities: [
-      {
-        type: {
-          type: String,
-          default: "assigned",
-          enum: [
-            "assigned",
-            "started",
-            "in progress",
-            "bug",
-            "completed",
-            "commented",
-          ],
-        },
-        activity: String,
-        date: { type: Date, default: new Date() },
-        by: { type: Schema.Types.ObjectId, ref: "User" },
-      },
-    ],
-    subTasks: [
-      {
-        title: String,
-        date: Date,
-        tag: String,
-        isCompleted: Boolean,
-      },
-    ],
-    description: String,
-    assets: [String],
-    links: [String],
-    team: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    isTrashed: { type: Boolean, default: false },
+const Task = sequelize.define('Task', {
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
   },
-  { timestamps: true }
-);
-
-const Task = mongoose.model("Task", taskSchema);
+  date: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  priority: {
+    type: DataTypes.ENUM('high', 'medium', 'normal', 'low'),
+    defaultValue: 'normal',
+  },
+  stage: {
+    type: DataTypes.ENUM('todo', 'in progress', 'completed'),
+    defaultValue: 'todo',
+  },
+  description: {
+    type: DataTypes.TEXT,
+  },
+  // assets: {
+  //   type: DataTypes.JSON, // Array of strings
+  //   defaultValue: [],
+  // },
+  links: {
+    type: DataTypes.JSON, // Array of strings
+    defaultValue: [],
+  },
+  isTrashed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  }
+}, {
+  timestamps: true,
+});
 
 export default Task;

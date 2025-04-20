@@ -10,7 +10,7 @@ import { useTrashTastMutation } from "../redux/slices/api/taskApiSlice.js";
 import { BGS, PRIOTITYSTYELS, TASK_TYPE, formatDate } from "../utils/index.js";
 
 import { Button, ConfirmatioDialog, UserInfo } from "./index";
-import { AddTask, TaskAssets, TaskColor } from "./tasks";
+import { AddTask, TaskColor } from "./tasks";
 import { Link } from "react-router-dom";
 
 const ICONS = {
@@ -61,7 +61,7 @@ const Table = ({ tasks }) => {
         <th className='py-2'>Task Title</th>
         <th className='py-2'>Priority</th>
         <th className='py-2 line-clamp-1'>Created At</th>
-        <th className='py-2'>Assets</th>
+        {/* <th className='py-2'>Assets</th> */}
         <th className='py-2'>Team</th>
       </tr>
     </thead>
@@ -97,13 +97,13 @@ const Table = ({ tasks }) => {
         </span>
       </td>
 
-      <td className='py-2'>
+      {/* <td className='py-2'>
         <TaskAssets
           activities={task?.activities?.length}
           subTasks={task?.subTasks}
           assets={task?.assets?.length}
         />
-      </td>
+      </td> */}
 
       <td className='py-2'>
         <div className='flex'>
@@ -146,10 +146,11 @@ const Table = ({ tasks }) => {
           <table className='w-full '>
             <TableHeader />
             <tbody>
-              {tasks.map((task, index) => (
-                <TableRow key={index} task={task} />
-              ))}
-            </tbody>
+  {(tasks ?? []).map((task, index) => (
+    <TableRow key={index} task={task} />
+  ))}
+</tbody>
+
           </table>
         </div>
       </div>

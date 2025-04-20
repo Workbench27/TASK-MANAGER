@@ -1,267 +1,383 @@
 import asyncHandler from "express-async-handler";
-// import { Task, User, Notice, SubTask } from "../models";
+import { Op } from "sequelize";
+import Task from "../models/taskModel.js";
+import UserModel from "../models/userModel.js";
+import NoticeModel from "../models/notis.js";
+import { sequelize } from "../utils/connectDB.js";
 
-// CREATE TASK
+// initialize models
+const User = UserModel(sequelize);
+const Notice = NoticeModel(sequelize);
+
 const createTask = asyncHandler(async (req, res) => {
-  const { userId } = req.user;
-  const { title, team, stage, date, priority, assets, links, description } = req.body;
+  try {
+    const { userId } = req.user;
+    const { title, team, stage, date, priority, assets, links, description } = req.body;
 
-  let text = "New task has been assigned to you";
-  if (team?.length > 1) {
-    text += ` and ${team.length - 1} others.`;
+    let text = "New task has been assigned to you";
+    if (team?.length > 1) {
+      text += ` and ${team.length - 1} others.`;
+    }
+
+    text += ` The task priority is set a ${priority} priority, so check and act accordingly. The task date is ${new Date(
+      date
+    ).toDateString()}. Thank you!!!`;
+
+    const activity = {
+      type: "assigned",
+      activity: text,
+      by: userId,
+    };
+
+    const newLinks = links ? links.split(",") : [];
+
+    const task = await Task.create({
+      title,
+      team, // assuming you’ll handle team-user relationships separately
+      stage: stage.toLowerCase(),
+      date,
+      priority: priority.toLowerCase(),
+      assets, // if this is used, uncomment JSON column in model
+      activities: activity, // optional: define if needed
+      links: newLinks,
+      description,
+    });
+
+    await Notice.create({
+      text,
+      taskId: task.id,
+    });
+
+    const users = await User.findAll({
+      where: {
+        id: {
+          [Op.in]: team,
+        },
+      },
+    });
+
+    if (users.length) {
+      for (const user of users) {
+        await user.addTask(task); // assuming association exists: User.hasMany(Task)
+      }
+    }
+
+    res.status(200).json({ status: true, task, message: "Task created successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: error.message });
   }
-
-  text += ` The task priority is set a ${priority} priority, so check and act accordingly. The task date is ${new Date(date).toDateString()}. Thank you!!!`;
-
-  const activity = {
-    type: "assigned",
-    activity: text,
-    by: userId,
-  };
-
-  const task = await Task.create({
-    title,
-    stage: stage.toLowerCase(),
-    date,
-    priority: priority.toLowerCase(),
-    assets,
-    links: links?.split(",") || [],
-    description,
-    activities: [activity],
-  });
-
-  await task.setUsers(team);
-  await Notice.create({ team: JSON.stringify(team), text, taskId: task.id });
-
-  res.status(200).json({ status: true, task, message: "Task created successfully." });
 });
 
-// DUPLICATE TASK
 const duplicateTask = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { userId } = req.user;
+  try {
+    const { id } = req.params;
+    const { userId } = req.user;
 
-  const task = await Task.findByPk(id, { include: [User] });
+    const task = await Task.findByPk(id);
+    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
 
-  let text = "New task has been assigned to you";
-  if (task.Users?.length > 1) {
-    text += ` and ${task.Users.length - 1} others.`;
+    let text = "New task has been assigned to you";
+    if (task.team?.length > 1) {
+      text += ` and ${task.team.length - 1} others.`;
+    }
+
+    text += ` The task priority is set a ${task.priority} priority, so check and act accordingly. The task date is ${new Date(
+      task.date
+    ).toDateString()}. Thank you!!!`;
+
+    const activity = {
+      type: "assigned",
+      activity: text,
+      by: userId,
+    };
+
+    const newTask = await Task.create({
+      title: "Duplicate - " + task.title,
+      team: task.team,
+      subTasks: task.subTasks, // optional: if defined
+      assets: task.assets,
+      links: task.links,
+      priority: task.priority,
+      stage: task.stage,
+      activities: activity,
+      description: task.description,
+    });
+
+    await Notice.create({
+      team: newTask.team,
+      text,
+      taskId: newTask.id,
+    });
+
+    res.status(200).json({ status: true, message: "Task duplicated successfully." });
+  } catch (error) {
+    res.status(500).json({ status: false, message: error.message });
   }
-
-  text += ` The task priority is set a ${task.priority} priority, so check and act accordingly. The task date is ${new Date(task.date).toDateString()}. Thank you!!!`;
-
-  const activity = {
-    type: "assigned",
-    activity: text,
-    by: userId,
-  };
-
-  const newTask = await Task.create({
-    title: "Duplicate - " + task.title,
-    date: task.date,
-    stage: task.stage,
-    priority: task.priority,
-    assets: task.assets,
-    links: task.links,
-    description: task.description,
-    activities: [activity],
-  });
-
-  await newTask.setUsers(task.Users.map(u => u.id));
-  await Notice.create({ team: JSON.stringify(task.Users.map(u => u.id)), text, taskId: newTask.id });
-
-  res.status(200).json({ status: true, message: "Task duplicated successfully." });
 });
 
-// UPDATE TASK
 const updateTask = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { title, date, team, stage, priority, assets, links, description } = req.body;
+  try {
+    const { id } = req.params;
+    const { title, date, team, stage, priority, assets, links, description } = req.body;
 
-  const task = await Task.findByPk(id);
-  task.title = title;
-  task.date = date;
-  task.priority = priority.toLowerCase();
-  task.assets = assets;
-  task.stage = stage.toLowerCase();
-  task.links = links?.split(",") || [];
-  task.description = description;
+    const task = await Task.findByPk(id);
+    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
 
-  await task.save();
-  await task.setUsers(team);
+    const newLinks = links ? links.split(",") : [];
 
-  res.status(200).json({ status: true, message: "Task updated successfully." });
+    await task.update({
+      title,
+      date,
+      team,
+      stage: stage.toLowerCase(),
+      priority: priority.toLowerCase(),
+      assets,
+      links: newLinks,
+      description,
+    });
+
+    res.status(200).json({ status: true, message: "Task updated successfully." });
+  } catch (error) {
+    res.status(400).json({ status: false, message: error.message });
+  }
 });
 
-// UPDATE TASK STAGE
 const updateTaskStage = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { stage } = req.body;
+  try {
+    const { id } = req.params;
+    const { stage } = req.body;
 
-  const task = await Task.findByPk(id);
-  task.stage = stage.toLowerCase();
-  await task.save();
+    const task = await Task.findByPk(id);
+    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
 
-  res.status(200).json({ status: true, message: "Task stage changed successfully." });
+    await task.update({ stage: stage.toLowerCase() });
+
+    res.status(200).json({ status: true, message: "Task stage changed successfully." });
+  } catch (error) {
+    res.status(400).json({ status: false, message: error.message });
+  }
 });
 
-// UPDATE SUBTASK STAGE
 const updateSubTaskStage = asyncHandler(async (req, res) => {
-  const { taskId, subTaskId } = req.params;
-  const { status } = req.body;
+  try {
+    const { taskId, subTaskId } = req.params;
+    const { status } = req.body;
 
-  await SubTask.update({ isCompleted: status }, { where: { id: subTaskId, taskId } });
-
-  res.status(200).json({
-    status: true,
-    message: status ? "Task has been marked completed" : "Task has been marked uncompleted",
-  });
+    // You’ll need a separate model/table for subTasks in Sequelize to support this update
+    // This is a placeholder until that structure is defined
+    res.status(501).json({ status: false, message: "Sub-task stage update not implemented in Sequelize yet." });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ status: false, message: error.message });
+  }
 });
 
-// CREATE SUBTASK
 const createSubTask = asyncHandler(async (req, res) => {
   const { title, tag, date } = req.body;
   const { id } = req.params;
 
-  await SubTask.create({
-    title,
-    tag,
-    date,
-    isCompleted: false,
-    taskId: id,
-  });
+  try {
+    const task = await Task.findByPk(id);
 
-  res.status(200).json({ status: true, message: "SubTask added successfully." });
+    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
+
+    const subTasks = task.subTasks || [];
+    subTasks.push({ title, tag, date, isCompleted: false });
+
+    await task.update({ subTasks });
+
+    res.status(200).json({ status: true, message: "SubTask added successfully." });
+  } catch (error) {
+    return res.status(400).json({ status: false, message: error.message });
+  }
 });
 
-// GET TASKS
 const getTasks = asyncHandler(async (req, res) => {
   const { userId, isAdmin } = req.user;
   const { stage, isTrashed, search } = req.query;
 
-  const where = { isTrashed: isTrashed === "true" };
+  let where = {
+    isTrashed: isTrashed ? true : false,
+  };
 
   if (!isAdmin) {
-    where["$Users.id$"] = userId;
+    where.team = {
+      [Op.contains]: [userId], // assuming team is stored as an array in JSON column
+    };
   }
-  if (stage) where.stage = stage;
+
+  if (stage) {
+    where.stage = stage;
+  }
 
   if (search) {
     where[Op.or] = [
-      { title: { [Op.like]: `%${search}%` } },
-      { stage: { [Op.like]: `%${search}%` } },
-      { priority: { [Op.like]: `%${search}%` } },
+      { title: { [Op.iLike]: `%${search}%` } },
+      { stage: { [Op.iLike]: `%${search}%` } },
+      { priority: { [Op.iLike]: `%${search}%` } },
     ];
   }
 
   const tasks = await Task.findAll({
     where,
-    include: [{ model: User, attributes: ["name", "title", "email"] }],
     order: [["id", "DESC"]],
   });
 
-  res.status(200).json({ status: true, tasks });
-});
-
-// GET SINGLE TASK
-const getTask = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  const task = await Task.findByPk(id, {
-    include: [
-      { model: User, attributes: ["name", "title", "role", "email"] },
-    ],
+  res.status(200).json({
+    status: true,
+    tasks,
   });
-
-  res.status(200).json({ status: true, task });
 });
 
-// POST TASK ACTIVITY
+const getTask = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const task = await Task.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: "teamMembers", // define proper association in models
+          attributes: ["name", "title", "role", "email"],
+        },
+      ],
+      order: [["id", "DESC"]],
+    });
+
+    if (!task) {
+      return res.status(404).json({ status: false, message: "Task not found." });
+    }
+
+    res.status(200).json({
+      status: true,
+      task,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ status: false, message: "Failed to fetch task" });
+  }
+});
+
 const postTaskActivity = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { userId } = req.user;
   const { type, activity } = req.body;
 
-  const task = await Task.findByPk(id);
-  task.activities.push({ type, activity, by: userId });
+  try {
+    const task = await Task.findByPk(id);
 
-  await task.save();
+    const activities = task.activities || [];
+    activities.push({ type, activity, by: userId });
 
-  res.status(200).json({ status: true, message: "Activity posted successfully." });
+    await task.update({ activities });
+
+    res.status(200).json({ status: true, message: "Activity posted successfully." });
+  } catch (error) {
+    return res.status(400).json({ status: false, message: error.message });
+  }
 });
 
-// TRASH TASK
+
 const trashTask = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const task = await Task.findByPk(id);
-  task.isTrashed = true;
-  await task.save();
+  try {
+    const task = await Task.findByPk(id);
+    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
 
-  res.status(200).json({ status: true, message: "Task trashed successfully." });
+    await task.update({ isTrashed: true });
+
+    res.status(200).json({ status: true, message: "Task trashed successfully." });
+  } catch (error) {
+    return res.status(400).json({ status: false, message: error.message });
+  }
 });
 
-// DELETE / RESTORE TASK
 const deleteRestoreTask = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { actionType } = req.query;
 
-  if (actionType === "delete") {
-    await Task.destroy({ where: { id } });
-  } else if (actionType === "deleteAll") {
-    await Task.destroy({ where: { isTrashed: true } });
-  } else if (actionType === "restore") {
-    await Task.update({ isTrashed: false }, { where: { id } });
-  } else if (actionType === "restoreAll") {
-    await Task.update({ isTrashed: false }, { where: { isTrashed: true } });
-  }
+  try {
+    if (actionType === "delete") {
+      await Task.destroy({ where: { id } });
+    } else if (actionType === "deleteAll") {
+      await Task.destroy({ where: { isTrashed: true } });
+    } else if (actionType === "restore") {
+      await Task.update({ isTrashed: false }, { where: { id } });
+    } else if (actionType === "restoreAll") {
+      await Task.update({ isTrashed: false }, { where: { isTrashed: true } });
+    }
 
-  res.status(200).json({ status: true, message: "Operation performed successfully." });
+    res.status(200).json({
+      status: true,
+      message: "Operation performed successfully.",
+    });
+  } catch (error) {
+    return res.status(400).json({ status: false, message: error.message });
+  }
 });
 
-// DASHBOARD STATS
 const dashboardStatistics = asyncHandler(async (req, res) => {
   const { userId, isAdmin } = req.user;
 
-  const tasks = await Task.findAll({
-    where: {
+  try {
+    const where = {
       isTrashed: false,
-      ...(isAdmin ? {} : { "$Users.id$": userId }),
-    },
-    include: [{ model: User, attributes: ["name", "title", "role", "email"] }],
-  });
+    };
 
-  const groupedTasks = tasks.reduce((acc, task) => {
-    acc[task.stage] = (acc[task.stage] || 0) + 1;
-    return acc;
-  }, {});
+    if (!isAdmin) {
+      where.team = {
+        [Op.contains]: [userId], // team is stored as array
+      };
+    }
 
-  const graphData = Object.entries(
-    tasks.reduce((acc, task) => {
-      acc[task.priority] = (acc[task.priority] || 0) + 1;
-      return acc;
-    }, {})
-  ).map(([name, total]) => ({ name, total }));
+    const allTasks = await Task.findAll({
+      where,
+      order: [["id", "DESC"]],
+    });
 
-  const users = isAdmin
-    ? await User.findAll({
-        where: { isActive: true },
-        attributes: ["name", "title", "role", "createdAt"],
-        limit: 10,
-        order: [["id", "DESC"]],
-      })
-    : [];
+    const users = isAdmin
+      ? await User.findAll({
+          where: { isActive: true },
+          attributes: ["name", "title", "role", "isActive", "createdAt"],
+          limit: 10,
+          order: [["id", "DESC"]],
+        })
+      : [];
 
-  res.status(200).json({
-    status: true,
-    totalTasks: tasks.length,
-    last10Task: tasks.slice(0, 10),
-    users,
-    tasks: groupedTasks,
-    graphData,
-    message: "Successfully.",
-  });
+    const groupedTasks = allTasks.reduce((result, task) => {
+      const stage = task.stage;
+      result[stage] = (result[stage] || 0) + 1;
+      return result;
+    }, {});
+
+    const graphData = Object.entries(
+      allTasks.reduce((result, task) => {
+        const { priority } = task;
+        result[priority] = (result[priority] || 0) + 1;
+        return result;
+      }, {})
+    ).map(([name, total]) => ({ name, total }));
+
+    const totalTasks = allTasks.length;
+    const last10Task = allTasks.slice(0, 10);
+
+    const summary = {
+      totalTasks,
+      last10Task,
+      users,
+      tasks: groupedTasks,
+      graphData,
+    };
+
+    res.status(200).json({ status: true, ...summary, message: "Successfully." });
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json({ status: false, message: error.message });
+  }
 });
+
 
 export {
   createSubTask,

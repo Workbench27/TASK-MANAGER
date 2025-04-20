@@ -1,31 +1,107 @@
+// import asyncHandler from "express-async-handler";
+// import jwt from "jsonwebtoken";
+// import { sequelize } from "../utils/connectDB.js";  // ✅ Only import 'sequelize'
+// import { Sequelize } from 'sequelize';  // ✅ Import 'Sequelize' from the sequelize package
+
+// const protectRoute = asyncHandler(async (req, res, next) => {
+//   const token = req.cookies.token;
+
+//   if (!token) {
+//     return res.status(401).json({
+//       status: false,
+//       message: "Not authorized. Try login again.",
+//     });
+//   }
+
+//   try {
+//     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+//     console.log("Decoded JWT Token:", decodedToken);
+
+//     const [rows] = await sequelize.query(
+//       "SELECT id, email, isAdmin FROM users WHERE id = ?",
+//       {
+//         replacements: [decodedToken.userId],
+//         type: Sequelize.QueryTypes.SELECT,  // ✅ Use Sequelize.QueryTypes
+//       }
+//     );
+
+//     if (!rows || rows.length === 0) {
+//       return res
+//         .status(401)
+//         .json({ status: false, message: "User not found." });
+//     }
+
+//     const user = rows[0];
+
+//     req.user = {
+//       email: user.email,
+//       isAdmin: user.isAdmin,
+//       userId: user.id,
+//     };
+
+//     next();
+//   } catch (error) {
+//     console.error(error);
+//     return res
+//       .status(401)
+//       .json({ status: false, message: "Not authorized. Try login again." });
+//   }
+// });
+
+// const isAdminRoute = (req, res, next) => {
+//   if (req.user && req.user.isAdmin) {
+//     next();
+//   } else {
+//     return res.status(401).json({
+//       status: false,
+//       message: "Not authorized as admin. Try login as admin.",
+//     });
+//   }
+// };
+
+// export { isAdminRoute, protectRoute };
+
+
+
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
-import { db } from "../utils/connectDB.js"; // Adjust path as needed
+import { sequelize } from "../utils/connectDB.js";  // ✅ Only import 'sequelize'
+import UserModel from "../models/userModel.js";  // ✅ Import the user model
+
+// Get the actual User model by passing sequelize instance
+const User = UserModel(sequelize);
 
 const protectRoute = asyncHandler(async (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
-    return res
-      .status(401)
-      .json({ status: false, message: "Not authorized. Try login again." });
+    return res.status(401).json({
+      status: false,
+      message: "Not authorized. Try login again.",
+    });
   }
 
   try {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Decoded JWT Token:", decodedToken);
 
-    const [rows] = await db.promise().query(
-      "SELECT id, email, isAdmin FROM users WHERE id = ?",
-      [decodedToken.userId]
-    );
+    // Use Sequelize method to find the user
+    const user = await User.findOne({
+      where: { id: decodedToken.userId },
+    });
 
-    if (rows.length === 0) {
+    if (!user) {
       return res
         .status(401)
         .json({ status: false, message: "User not found." });
     }
 
-    const user = rows[0];
+    if (!user.isActive) {
+      return res.status(401).json({
+        status: false,
+        message: "User account has been deactivated, contact the administrator",
+      });
+    }
 
     req.user = {
       email: user.email,
