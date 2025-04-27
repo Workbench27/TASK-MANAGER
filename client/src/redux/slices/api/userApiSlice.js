@@ -12,25 +12,9 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    getTeamLists: builder.query({
-      query: ({ search }) => ({
-        url: `${USERS_URL}/get-team?search=${search}`,
-        method: "GET",
-        credentials: "include",
-      }),
-    }),
-
     getUserTaskStatus: builder.query({
       query: () => ({
         url: `${USERS_URL}/get-status`,
-        method: "GET",
-        credentials: "include",
-      }),
-    }),
-
-    getNotifications: builder.query({
-      query: () => ({
-        url: `${USERS_URL}/notifications`,
         method: "GET",
         credentials: "include",
       }),
@@ -53,15 +37,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    markNotiAsRead: builder.mutation({
-      query: (data) => ({
-        url: `${USERS_URL}/read-noti?isReadType=${data.type}&id=${data?.id}`,
-        method: "PUT",
-        body: data,
-        credentials: "include",
-      }),
-    }),
-
     changePassword: builder.mutation({
       query: (data) => ({
         url: `${USERS_URL}/change-password`,
@@ -75,11 +50,8 @@ export const userApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useUpdateUserMutation,
-  useGetTeamListsQuery,
   useDeleteUserMutation,
   useUserActionMutation,
   useChangePasswordMutation,
-  useGetNotificationsQuery,
-  useMarkNotiAsReadMutation,
   useGetUserTaskStatusQuery,
 } = userApiSlice;

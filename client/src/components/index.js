@@ -1,4 +1,3 @@
-import AddUser from "./AddUser";
 import Button from "./Button";
 import ChangePassword from "./ChangePassword";
 import { Chart } from "./Chart";
@@ -16,7 +15,6 @@ import UserAvatar from "./UserAvatar";
 import UserInfo from "./UserInfo";
 
 export {
-  AddUser,
   Button,
   ChangePassword,
   Chart,

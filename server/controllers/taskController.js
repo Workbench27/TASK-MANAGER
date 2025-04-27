@@ -2,124 +2,47 @@ import asyncHandler from "express-async-handler";
 import { Op } from "sequelize";
 import Task from "../models/taskModel.js";
 import UserModel from "../models/userModel.js";
-import NoticeModel from "../models/notis.js";
 import { sequelize } from "../utils/connectDB.js";
 
 // initialize models
 const User = UserModel(sequelize);
-const Notice = NoticeModel(sequelize);
 
 const createTask = asyncHandler(async (req, res) => {
   try {
+    console.log("Request Body:", req.body);
     const { userId } = req.user;
-    const { title, team, stage, date, priority, assets, links, description } = req.body;
+    const { title, stage, dueDate, priority, description } = req.body;
 
-    let text = "New task has been assigned to you";
-    if (team?.length > 1) {
-      text += ` and ${team.length - 1} others.`;
+    if (!title || !dueDate || !priority || !stage) {
+      return res.status(400).json({ status: false, message: "Title, dueDate, priority, and stage are required!" });
     }
 
-    text += ` The task priority is set a ${priority} priority, so check and act accordingly. The task date is ${new Date(
-      date
-    ).toDateString()}. Thank you!!!`;
+    // 📢 Create notification text (you need to initialize it first)
+    let text = "New task has been assigned to you"; // Initialize text variable
+    text += ` The task priority is set as ${priority} priority. Task due date is ${new Date(dueDate).toDateString()}. Thank you!`;
 
-    const activity = {
-      type: "assigned",
-      activity: text,
-      by: userId,
-    };
-
-    const newLinks = links ? links.split(",") : [];
-
+    // ✅ Create the Task
     const task = await Task.create({
       title,
-      team, // assuming you’ll handle team-user relationships separately
       stage: stage.toLowerCase(),
-      date,
+      dueDate: dueDate,
       priority: priority.toLowerCase(),
-      assets, // if this is used, uncomment JSON column in model
-      activities: activity, // optional: define if needed
-      links: newLinks,
       description,
+      userId, // Ensure userId is correctly passed
     });
 
-    await Notice.create({
-      text,
-      taskId: task.id,
-    });
-
-    const users = await User.findAll({
-      where: {
-        id: {
-          [Op.in]: team,
-        },
-      },
-    });
-
-    if (users.length) {
-      for (const user of users) {
-        await user.addTask(task); // assuming association exists: User.hasMany(Task)
-      }
-    }
-
-    res.status(200).json({ status: true, task, message: "Task created successfully." });
+    res.status(201).json({ status: true, task, message: "Task created successfully." });
   } catch (error) {
     console.error(error);
     res.status(500).json({ status: false, message: error.message });
   }
 });
 
-const duplicateTask = asyncHandler(async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { userId } = req.user;
-
-    const task = await Task.findByPk(id);
-    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
-
-    let text = "New task has been assigned to you";
-    if (task.team?.length > 1) {
-      text += ` and ${task.team.length - 1} others.`;
-    }
-
-    text += ` The task priority is set a ${task.priority} priority, so check and act accordingly. The task date is ${new Date(
-      task.date
-    ).toDateString()}. Thank you!!!`;
-
-    const activity = {
-      type: "assigned",
-      activity: text,
-      by: userId,
-    };
-
-    const newTask = await Task.create({
-      title: "Duplicate - " + task.title,
-      team: task.team,
-      subTasks: task.subTasks, // optional: if defined
-      assets: task.assets,
-      links: task.links,
-      priority: task.priority,
-      stage: task.stage,
-      activities: activity,
-      description: task.description,
-    });
-
-    await Notice.create({
-      team: newTask.team,
-      text,
-      taskId: newTask.id,
-    });
-
-    res.status(200).json({ status: true, message: "Task duplicated successfully." });
-  } catch (error) {
-    res.status(500).json({ status: false, message: error.message });
-  }
-});
 
 const updateTask = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, date, team, stage, priority, assets, links, description } = req.body;
+    const { title, date, stage, priority, assets, links, description } = req.body;
 
     const task = await Task.findByPk(id);
     if (!task) return res.status(404).json({ status: false, message: "Task not found." });
@@ -159,58 +82,21 @@ const updateTaskStage = asyncHandler(async (req, res) => {
   }
 });
 
-const updateSubTaskStage = asyncHandler(async (req, res) => {
-  try {
-    const { taskId, subTaskId } = req.params;
-    const { status } = req.body;
-
-    // You’ll need a separate model/table for subTasks in Sequelize to support this update
-    // This is a placeholder until that structure is defined
-    res.status(501).json({ status: false, message: "Sub-task stage update not implemented in Sequelize yet." });
-  } catch (error) {
-    console.log(error);
-    res.status(400).json({ status: false, message: error.message });
-  }
-});
-
-const createSubTask = asyncHandler(async (req, res) => {
-  const { title, tag, date } = req.body;
-  const { id } = req.params;
-
-  try {
-    const task = await Task.findByPk(id);
-
-    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
-
-    const subTasks = task.subTasks || [];
-    subTasks.push({ title, tag, date, isCompleted: false });
-
-    await task.update({ subTasks });
-
-    res.status(200).json({ status: true, message: "SubTask added successfully." });
-  } catch (error) {
-    return res.status(400).json({ status: false, message: error.message });
-  }
-});
-
 const getTasks = asyncHandler(async (req, res) => {
-  const { userId, isAdmin } = req.user;
+  const { userId } = req.user;  // Only userId is available now
   const { stage, isTrashed, search } = req.query;
 
   let where = {
     isTrashed: isTrashed ? true : false,
+    userId,  // Filter tasks by the userId of the logged-in user
   };
 
-  if (!isAdmin) {
-    where.team = {
-      [Op.contains]: [userId], // assuming team is stored as an array in JSON column
-    };
-  }
-
+  // If stage is provided in the query, filter tasks by stage
   if (stage) {
     where.stage = stage;
   }
 
+  // If search query is provided, search tasks by title, stage, or priority
   if (search) {
     where[Op.or] = [
       { title: { [Op.iLike]: `%${search}%` } },
@@ -219,15 +105,20 @@ const getTasks = asyncHandler(async (req, res) => {
     ];
   }
 
-  const tasks = await Task.findAll({
-    where,
-    order: [["id", "DESC"]],
-  });
+  try {
+    const tasks = await Task.findAll({
+      where,
+      order: [["id", "DESC"]],
+    });
 
-  res.status(200).json({
-    status: true,
-    tasks,
-  });
+    res.status(200).json({
+      status: true,
+      tasks,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: error.message });
+  }
 });
 
 const getTask = asyncHandler(async (req, res) => {
@@ -280,19 +171,34 @@ const postTaskActivity = asyncHandler(async (req, res) => {
 
 
 const trashTask = asyncHandler(async (req, res) => {
+  // Get the task ID from the URL parameters and parse it as a number
   const { id } = req.params;
+  const parsedId = parseInt(id, 10);  // Parse the id to an integer
 
   try {
-    const task = await Task.findByPk(id);
-    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
+    // Check if the parsed ID is a valid number
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ status: false, message: "Invalid task ID." });
+    }
 
+    // Try to find the task by primary key (id)
+    const task = await Task.findByPk(parsedId);
+
+    // Check if the task exists
+    if (!task) {
+      return res.status(404).json({ status: false, message: "Task not found." });
+    }
+
+    // Update the task to set isTrashed to true
     await task.update({ isTrashed: true });
 
     res.status(200).json({ status: true, message: "Task trashed successfully." });
   } catch (error) {
-    return res.status(400).json({ status: false, message: error.message });
+    console.error(error);  // Log the error to help debugging
+    return res.status(500).json({ status: false, message: error.message });
   }
 });
+
 
 const deleteRestoreTask = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -319,32 +225,18 @@ const deleteRestoreTask = asyncHandler(async (req, res) => {
 });
 
 const dashboardStatistics = asyncHandler(async (req, res) => {
-  const { userId, isAdmin } = req.user;
+  const { userId} = req.user;
 
   try {
     const where = {
       isTrashed: false,
     };
 
-    if (!isAdmin) {
-      where.team = {
-        [Op.contains]: [userId], // team is stored as array
-      };
-    }
-
     const allTasks = await Task.findAll({
       where,
       order: [["id", "DESC"]],
     });
 
-    const users = isAdmin
-      ? await User.findAll({
-          where: { isActive: true },
-          attributes: ["name", "title", "role", "isActive", "createdAt"],
-          limit: 10,
-          order: [["id", "DESC"]],
-        })
-      : [];
 
     const groupedTasks = allTasks.reduce((result, task) => {
       const stage = task.stage;
@@ -366,7 +258,6 @@ const dashboardStatistics = asyncHandler(async (req, res) => {
     const summary = {
       totalTasks,
       last10Task,
-      users,
       tasks: groupedTasks,
       graphData,
     };
@@ -380,16 +271,13 @@ const dashboardStatistics = asyncHandler(async (req, res) => {
 
 
 export {
-  createSubTask,
   createTask,
   dashboardStatistics,
   deleteRestoreTask,
-  duplicateTask,
   getTask,
   getTasks,
   postTaskActivity,
   trashTask,
-  updateSubTaskStage,
   updateTask,
   updateTaskStage,
 };

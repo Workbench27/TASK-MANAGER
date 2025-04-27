@@ -1,33 +1,3 @@
-// import { Sequelize } from 'sequelize';
-// import dotenv from 'dotenv';
-
-// dotenv.config();
-
-// const sequelize = new Sequelize(
-//   process.env.MYSQL_DATABASE,
-//   process.env.MYSQL_USER,
-//   process.env.MYSQL_PASSWORD,
-//   {
-//     host: process.env.MYSQL_HOST,
-//     dialect: 'mysql',
-//     logging: false, // set to console.log to see raw queries
-//   }
-// );
-
-// const connectToDB = async () => {
-//   try {
-//     await sequelize.authenticate();
-//     console.log('✅ MySQL connected via Sequelize.');
-//   } catch (error) {
-//     console.error('❌ Unable to connect to the database:', error.message);
-//     throw error;
-//   }
-// };
-
-// export { sequelize, connectToDB };
-
-
-
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 

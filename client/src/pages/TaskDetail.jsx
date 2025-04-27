@@ -17,14 +17,12 @@ import { toast } from "sonner";
 import { Button, Loading, Tabs } from "../components";
 import { TaskColor } from "../components/tasks";
 import {
-  useChangeSubTaskStatusMutation,
   useGetSingleTaskQuery,
   usePostTaskActivityMutation,
 } from "../redux/slices/api/taskApiSlice";
 import {
   PRIOTITYSTYELS,
   TASK_TYPE,
-  getCompletedSubTasks,
   getInitials,
 } from "../utils";
 
@@ -200,41 +198,16 @@ const Activities = ({ activity, id, refetch }) => {
 const TaskDetail = () => {
   const { id } = useParams();
   const { data, isLoading, refetch } = useGetSingleTaskQuery(id);
-  const [subTaskAction, { isLoading: isSubmitting }] =
-    useChangeSubTaskStatusMutation();
-
   const [selected, setSelected] = useState(0);
   const task = data?.task || [];
 
-  const handleSubmitAction = async (el) => {
-    try {
-      const data = {
-        id: el.id,
-        subId: el.subId,
-        status: !el.status,
-      };
-      const res = await subTaskAction({
-        ...data,
-      }).unwrap();
-
-      toast.success(res?.message);
-      refetch();
-    } catch (err) {
-      console.log(err);
-      toast.error(err?.data?.message || err.error);
-    }
-  };
-
+  
   if (isLoading)
     <div className='py-10'>
       <Loading />
     </div>;
 
-  const percentageCompleted =
-    task?.subTasks?.length === 0
-      ? 0
-      : (getCompletedSubTasks(task?.subTasks) / task?.subTasks?.length) * 100;
-
+  
   return (
     <div className='w-full flex flex-col gap-3 mb-4 overflow-y-hidden'>
       {/* task detail */}
@@ -265,124 +238,8 @@ const TaskDetail = () => {
                 <p className='text-gray-500'>
                   Created At: {new Date(task?.date).toDateString()}
                 </p>
-
-                <div className='flex items-center gap-8 p-4 border-y border-gray-200'>
-                  <div className='space-x-2'>
-                    <span className='font-semibold'>Assets :</span>
-                    <span>{task?.assets?.length}</span>
-                  </div>
-                  <span className='text-gray-400'>|</span>
-                  <div className='space-x-2'>
-                    <span className='font-semibold'>Sub-Task :</span>
-                    <span>{task?.subTasks?.length}</span>
-                  </div>
-                </div>
-
-                <div className='space-y-4 py-6'>
-                  <p className='text-gray-500 font-semibold text-sm'>
-                    TASK TEAM
-                  </p>
-                  <div className='space-y-3'>
-                    {task?.team?.map((m, index) => (
-                      <div
-                        key={index + m?._id}
-                        className='flex gap-4 py-2 items-center border-t border-gray-200'
-                      >
-                        <div
-                          className={
-                            "w-10 h-10 rounded-full text-white flex items-center justify-center text-sm -mr-1 bg-blue-600"
-                          }
-                        >
-                          <span className='text-center'>
-                            {getInitials(m?.name)}
-                          </span>
-                        </div>
-                        <div>
-                          <p className='text-lg font-semibold'>{m?.name}</p>
-                          <span className='text-gray-500'>{m?.title}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {task?.subTasks?.length > 0 && (
-                  <div className='space-y-4 py-6'>
-                    <div className='flex items-center gap-5'>
-                      <p className='text-gray-500 font-semibold text-sm'>
-                        SUB-TASKS
-                      </p>
-                      <div
-                        className={`w-fit h-8 px-2 rounded-full flex items-center justify-center text-white ${
-                          percentageCompleted < 50
-                            ? "bg-rose-600"
-                            : percentageCompleted < 80
-                            ? "bg-amber-600"
-                            : "bg-emerald-600"
-                        }`}
-                      >
-                        <p>{percentageCompleted.toFixed(2)}%</p>
-                      </div>
-                    </div>
-                    <div className='space-y-8'>
-                      {task?.subTasks?.map((el, index) => (
-                        <div key={index + el?._id} className='flex gap-3'>
-                          <div className='w-10 h-10 flex items-center justify-center rounded-full bg-violet-200'>
-                            <MdTaskAlt className='text-violet-600' size={26} />
-                          </div>
-
-                          <div className='space-y-1'>
-                            <div className='flex gap-2 items-center'>
-                              <span className='text-sm text-gray-500'>
-                                {new Date(el?.date).toDateString()}
-                              </span>
-
-                              <span className='px-2 py-0.5 text-center text-sm rounded-full bg-violet-100 text-violet-700 font-semibold lowercase'>
-                                {el?.tag}
-                              </span>
-
-                              <span
-                                className={`px-2 py-0.5 text-center text-sm rounded-full font-semibold ${
-                                  el?.isCompleted
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-50 text-amber-600"
-                                }`}
-                              >
-                                {el?.isCompleted ? "done" : "in progress"}
-                              </span>
-                            </div>
-                            <p className='text-gray-700 pb-2'>{el?.title}</p>
-
-                            <>
-                              <button
-                                disabled={isSubmitting}
-                                className={`text-sm outline-none bg-gray-100 text-gray-800 p-1 rounded ${
-                                  el?.isCompleted
-                                    ? "hover:bg-rose-100 hover:text-rose-800"
-                                    : "hover:bg-emerald-100 hover:text-emerald-800"
-                                } disabled:cursor-not-allowed`}
-                                onClick={() =>
-                                  handleSubmitAction({
-                                    status: el?.isCompleted,
-                                    id: task?._id,
-                                    subId: el?._id,
-                                  })
-                                }
-                              >
-                                {isSubmitting ? (
-                                  <FaSpinner className='animate-spin' />
-                                ) : el?.isCompleted ? (
-                                  " Mark as Undone"
-                                ) : (
-                                  " Mark as Done"
-                                )}
-                              </button>
-                            </>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                
+               
               </div>
 
               <div className='w-full md:w-1/2 space-y-3'>
@@ -393,39 +250,9 @@ const TaskDetail = () => {
                   </div>
                 )}
 
-                {task?.assets?.length > 0 && (
-                  <div className='pb-10'>
-                    <p className='text-lg font-semibold'>ASSETS</p>
-                    <div className='w-full grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      {task?.assets?.map((el, index) => (
-                        <img
-                          key={index}
-                          src={el}
-                          alt={index}
-                          className='w-full rounded h-auto md:h-44 2xl:h-52 cursor-pointer transition-all duration-700 md:hover:scale-125 hover:z-50'
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+               
 
-                {task?.links?.length > 0 && (
-                  <div className=''>
-                    <p className='text-lg font-semibold'>SUPPORT LINKS</p>
-                    <div className='w-full flex flex-col gap-4'>
-                      {task?.links?.map((el, index) => (
-                        <a
-                          key={index}
-                          href={el}
-                          target='_blank'
-                          className='text-blue-600 hover:underline'
-                        >
-                          {el}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                
               </div>
             </div>
           </>

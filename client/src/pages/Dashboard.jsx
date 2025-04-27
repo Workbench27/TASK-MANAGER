@@ -21,7 +21,6 @@ const Card = ({ label, count, bg, icon }) => {
       <div className='h-full flex flex-1 flex-col justify-between'>
         <p className='text-base text-gray-600'>{label}</p>
         <span className='text-2xl font-semibold'>{count}</span>
-        <span className='text-sm text-gray-400'>{"111 last month"}</span>
       </div>
       <div
         className={clsx(
@@ -176,7 +175,6 @@ const TaskTable = ({ tasks }) => {
       <tr className='text-black dark:text-white  text-left'>
         <th className='py-2'>Task Title</th>
         <th className='py-2'>Priority</th>
-        <th className='py-2'>Team</th>
         <th className='py-2 hidden md:block'>Created At</th>
       </tr>
     </thead>
@@ -203,25 +201,9 @@ const TaskTable = ({ tasks }) => {
         </div>
       </td>
 
-      <td className='py-2'>
-        <div className='flex'>
-          {task?.team.map((m, index) => (
-            <div
-              key={index}
-              className={clsx(
-                "w-7 h-7 rounded-full text-white flex items-center justify-center text-sm -mr-1",
-                BGS[index % BGS?.length]
-              )}
-            >
-              <UserInfo user={m} />
-            </div>
-          ))}
-        </div>
-      </td>
-
       <td className='py-2 hidden md:block'>
         <span className='text-base text-gray-600'>
-          {moment(task?.date).fromNow()}
+          {moment(task?.dueDate).fromNow()}
         </span>
       </td>
     </tr>
@@ -239,7 +221,7 @@ const TaskTable = ({ tasks }) => {
           <TableHeader />
           <tbody className=''>
             {tasks.map((task, id) => (
-              <TableRow key={task?._id + id} task={task} />
+              <TableRow key={task?._id || id} task={task} />
             ))}
           </tbody>
         </table>

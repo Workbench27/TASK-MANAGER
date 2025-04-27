@@ -9,7 +9,6 @@ import {
 } from "react-icons/md";
 import { toast } from "sonner";
 import {
-  AddUser,
   Button,
   ConfirmatioDialog,
   Loading,
@@ -209,7 +208,6 @@ const Trash = () => {
         )}
       </div>
 
-      <AddUser open={open} setOpen={setOpen} />
 
       <ConfirmatioDialog
         open={openDialog}

@@ -15,7 +15,6 @@ const StatusPage = () => {
     <thead className='border-b border-gray-300 dark:border-gray-600'>
       <tr className='text-black dark:text-white  text-left'>
         <th className='py-2'>Full Name</th>
-        <th className='py-2'>Title</th>
         <th className='py-2'>Task Progress</th>
         <th className='py-2'>Task Numbers</th>
         <th className='py-2'>Total Task</th>
@@ -38,7 +37,6 @@ const StatusPage = () => {
             {user.name}
           </div>
         </td>
-        <td className='p-2'>{user.title}</td>
         <td className='p-2'>
           {
             <div className='flex items-center gap-2 text-white text-sm'>

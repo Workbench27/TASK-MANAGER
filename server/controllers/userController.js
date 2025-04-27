@@ -1,5 +1,4 @@
 import asyncHandler from "express-async-handler";
-import Notice from "../models/notis.js";
 import Users from "../models/userModel.js";
 import createJWT from "../utils/index.js";
 import { sequelize } from "../utils/connectDB.js";
@@ -98,50 +97,6 @@ const logoutUser = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
 
-// @GET - Get team list
-const getTeamList = asyncHandler(async (req, res) => {
-  const { search } = req.query;
-  let query = {};
-
-  if (search) {
-    const searchQuery = {
-      [Sequelize.Op.or]: [
-        { title: { [Sequelize.Op.like]: `%${search}%` } },
-        { name: { [Sequelize.Op.like]: `%${search}%` } },
-        { role: { [Sequelize.Op.like]: `%${search}%` } },
-        { email: { [Sequelize.Op.like]: `%${search}%` } },
-      ],
-    };
-    query = { ...query, ...searchQuery };
-  }
-
-  const user = await User.findAll({
-    where: query,
-    attributes: ["name", "title", "role", "email", "isActive"],
-  });
-
-  res.status(201).json(user);
-});
-
-// @GET - Get user notifications list
-const getNotificationsList = asyncHandler(async (req, res) => {
-  const { userId } = req.user;
-
-  const notice = await Notice.findAll({
-    where: {
-      team: userId,
-      isRead: { [Sequelize.Op.notIn]: [userId] },
-    },
-    include: {
-      model: Task,
-      attributes: ["title"],
-    },
-    order: [["createdAt", "DESC"]],
-  });
-
-  res.status(200).json(notice);
-});
-
 // @GET - Get user task status
 const getUserTaskStatus = asyncHandler(async (req, res) => {
   const tasks = await User.findAll({
@@ -153,29 +108,6 @@ const getUserTaskStatus = asyncHandler(async (req, res) => {
   });
 
   res.status(200).json(tasks);
-});
-
-// @GET - Mark notification as read
-const markNotificationRead = asyncHandler(async (req, res) => {
-  try {
-    const { userId } = req.user;
-    const { isReadType, id } = req.query;
-
-    if (isReadType === "all") {
-      await Notice.update(
-        { isRead: Sequelize.fn("array_push", Sequelize.col("isRead"), userId) },
-        { where: { team: userId, isRead: { [Sequelize.Op.notIn]: [userId] } } }
-      );
-    } else {
-      await Notice.update(
-        { isRead: Sequelize.fn("array_push", Sequelize.col("isRead"), userId) },
-        { where: { id, isRead: { [Sequelize.Op.notIn]: [userId] } } }
-      );
-    }
-    res.status(201).json({ status: true, message: "Done" });
-  } catch (error) {
-    console.log(error);
-  }
 });
 
 // PUT - Update user profile
@@ -268,12 +200,9 @@ export {
   activateUserProfile,
   changeUserPassword,
   deleteUserProfile,
-  getNotificationsList,
-  getTeamList,
   getUserTaskStatus,
   loginUser,
   logoutUser,
-  markNotificationRead,
   registerUser,
   updateUserProfile,
 };

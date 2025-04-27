@@ -112,13 +112,10 @@ export const {
   usePostTaskActivityMutation,
   useCreateTaskMutation,
   useGetAllTaskQuery,
-  useCreateSubTaskMutation,
   useTrashTastMutation,
   useDeleteRestoreTastMutation,
-  useDuplicateTaskMutation,
   useUpdateTaskMutation,
   useGetSingleTaskQuery,
   useGetDasboardStatsQuery,
   useChangeTaskStageMutation,
-  useChangeSubTaskStatusMutation,
 } = postApiSlice;

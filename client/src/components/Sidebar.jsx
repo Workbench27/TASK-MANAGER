@@ -40,11 +40,6 @@ const linkData = [
     icon: <MdOutlinePendingActions />,
   },
   {
-    label: "Team",
-    link: "team",
-    icon: <FaUsers />,
-  },
-  {
     label: "Status",
     link: "status",
     icon: <IoCheckmarkDoneOutline />,

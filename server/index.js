@@ -5,9 +5,6 @@ import cookieParser from "cookie-parser";
 import { errorHandler, routeNotFound } from "./middleware/errorMiddleware.js";
 import routes from "./routes/index.js";
 import { connectToDB } from "./utils/connectDB.js";
-import Task from './models/taskModel.js';
-import User from './models/userModel.js';
-import Notice from './models/notis.js';
 
 dotenv.config();
 
@@ -51,4 +48,3 @@ const startServer = async () => {
 };
 
 startServer();
-export { Task, User, Notice };

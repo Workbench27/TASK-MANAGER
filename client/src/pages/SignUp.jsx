@@ -73,26 +73,6 @@ const Signup = () => {
                 error={errors.name?.message}
               />
               <Textbox
-                placeholder='Full Stack Developer'
-                type='text'
-                name='title'
-                label='Title'
-                register={register("title", {
-                  required: "Title is required!",
-                })}
-                error={errors.title?.message}
-              />
-              <Textbox
-                placeholder='seller or buyer'
-                type='text'
-                name='role'
-                label='Role'
-                register={register("role", {
-                  required: "Role is required!",
-                })}
-                error={errors.role?.message}
-              />
-              <Textbox
                 placeholder='you@example.com'
                 type='email'
                 name='email'

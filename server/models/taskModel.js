@@ -6,9 +6,13 @@ const Task = sequelize.define('Task', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  date: {
+  createdAtDate: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
+  },
+  dueDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
   priority: {
     type: DataTypes.ENUM('high', 'medium', 'normal', 'low'),
@@ -21,20 +25,17 @@ const Task = sequelize.define('Task', {
   description: {
     type: DataTypes.TEXT,
   },
-  // assets: {
-  //   type: DataTypes.JSON, // Array of strings
-  //   defaultValue: [],
-  // },
-  links: {
-    type: DataTypes.JSON, // Array of strings
-    defaultValue: [],
-  },
   isTrashed: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
-  }
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
 }, {
   timestamps: true,
+  tableName: 'tasks',
 });
 
 export default Task;

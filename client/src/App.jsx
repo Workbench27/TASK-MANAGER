@@ -12,7 +12,6 @@ import {
   TaskDetail,
   Tasks,
   Trash,
-  Users,
   StatusPage,
 } from "./pages";
 import { setOpenSidebar } from "./redux/slices/authSlice";
@@ -107,7 +106,6 @@ const App = () => {
             <Route path='/todo/:status?' element={<Tasks />} />
             <Route path='/trashed' element={<Trash />} />
             <Route path='/task/:id' element={<TaskDetail />} />
-            <Route path='/team' element={<Users />} />
             <Route path='/status' element={<StatusPage />} />
           </Route>
 
