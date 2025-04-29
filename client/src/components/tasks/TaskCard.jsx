@@ -44,7 +44,7 @@ const TaskCard = ({ task }) => {
           <TaskDialog task={task} />
         </div>
         <>
-          <Link to={`/task/${task._id}`}>
+          <Link to={`/task/${task.id}`}>
             <div className='flex items-center gap-2'>
               <TaskColor className={TASK_TYPE[task.stage]} />
               <h4 className='text- line-clamp-1 text-black dark:text-white'>

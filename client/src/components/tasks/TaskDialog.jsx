@@ -31,13 +31,13 @@ const CustomTransition = ({ children }) => (
   </Transition>
 );
 
-const ChangeTaskActions = ({ _id, stage }) => {
+const ChangeTaskActions = ({ id, stage }) => {
   const [changeStage] = useChangeTaskStageMutation();
 
   const changeHanlder = async (val) => {
     try {
       const data = {
-        id: _id,
+        id: id,
         stage: val,
       };
       const res = await changeStage(data).unwrap();
@@ -145,7 +145,7 @@ export default function TaskDialog({ task }) {
     {
       label: "Open Task",
       icon: <AiTwotoneFolderOpen className='mr-2 h-5 w-5' aria-hidden='true' />,
-      onClick: () => navigate(`/task/${task._id}`),
+      onClick: () => navigate(`/task/${task.id}`),
     },
     {
       label: "Edit",
@@ -185,7 +185,7 @@ export default function TaskDialog({ task }) {
 
               <div className='px-1 py-1'>
                 <Menu.Item>
-                  <ChangeTaskActions id={task._id} {...task} />
+                  <ChangeTaskActions id={task.id} {...task} />
                 </Menu.Item>
               </div>
 

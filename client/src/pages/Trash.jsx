@@ -151,11 +151,11 @@ const Trash = () => {
       <td className='py-2 flex gap-1 justify-end'>
         <Button
           icon={<MdOutlineRestore className='text-xl text-gray-500' />}
-          onClick={() => restoreClick(item._id)}
+          onClick={() => restoreClick(item.id)}
         />
         <Button
           icon={<MdDelete className='text-xl text-red-600' />}
-          onClick={() => deleteClick(item._id)}
+          onClick={() => deleteClick(item.id)}
         />
       </td>
     </tr>

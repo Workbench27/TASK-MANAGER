@@ -68,7 +68,7 @@ const Table = ({ tasks }) => {
   const TableRow = ({ task }) => (
     <tr className='border-b border-gray-200 text-gray-600 hover:bg-gray-300/10'>
       <td className='py-2'>
-        <Link to={`/task/${task._id}`}>
+        <Link to={`/task/${task.id}`}>
           <div className='flex items-center gap-2'>
             <TaskColor className={TASK_TYPE[task.stage]} />
             <p className='w-full line-clamp-2 text-base text-black'>
@@ -90,10 +90,10 @@ const Table = ({ tasks }) => {
       </td>
 
       <td className='py-2'>
-        <span className='text-sm text-gray-600'>
-          {formatDate(new Date(task?.date))}
-        </span>
-      </td>
+  <span className='text-sm text-gray-600'>
+    {task?.createdAt ? formatDate(new Date(task.createdAt)) : "N/A"}
+  </span>
+</td>
 
       {/* <td className='py-2'>
         <TaskAssets
@@ -115,7 +115,7 @@ const Table = ({ tasks }) => {
           className='text-red-700 hover:text-red-500 sm:px-0 text-sm md:text-base'
           label='Delete'
           type='button'
-          onClick={() => deleteClicks(task._id)}
+          onClick={() => deleteClicks(task.id)}
         />
       </td>
     </tr>

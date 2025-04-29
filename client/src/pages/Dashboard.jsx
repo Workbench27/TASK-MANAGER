@@ -53,28 +53,28 @@ const Dashboard = () => {
 
   const stats = [
     {
-      _id: "1",
+      id: "1",
       label: "TOTAL TASK",
       total: data?.totalTasks || 0,
       icon: <FaNewspaper />,
       bg: "bg-[#1d4ed8]",
     },
     {
-      _id: "2",
+      id: "2",
       label: "COMPLTED TASK",
       total: totals["completed"] || 0,
       icon: <MdAdminPanelSettings />,
       bg: "bg-[#0f766e]",
     },
     {
-      _id: "3",
+      id: "3",
       label: "TASK IN PROGRESS ",
       total: totals["in progress"] || 0,
       icon: <LuClipboardEdit />,
       bg: "bg-[#f59e0b]",
     },
     {
-      _id: "4",
+      id: "4",
       label: "TODOS",
       total: totals["todo"],
       icon: <FaArrowsToDot />,
@@ -152,7 +152,7 @@ const UserTable = ({ users }) => {
         <TableHeader />
         <tbody>
           {users?.map((user, index) => (
-            <TableRow key={index + user?._id} user={user} />
+            <TableRow key={index + user?.id} user={user} />
           ))}
         </tbody>
       </table>
@@ -174,7 +174,7 @@ const TaskTable = ({ tasks }) => {
       <tr className='text-black dark:text-white  text-left'>
         <th className='py-2'>Task Title</th>
         <th className='py-2'>Priority</th>
-        <th className='py-2 hidden md:block'>Created At</th>
+        <th className='py-2 hidden md:block'>Due Date</th>
       </tr>
     </thead>
   );
@@ -202,7 +202,7 @@ const TaskTable = ({ tasks }) => {
 
       <td className='py-2 hidden md:block'>
         <span className='text-base text-gray-600'>
-          {moment(task?.dueDate).fromNow()}
+          {moment(task?.dueDate).format("MMM D, YYYY")}
         </span>
       </td>
     </tr>
@@ -220,7 +220,7 @@ const TaskTable = ({ tasks }) => {
           <TableHeader />
           <tbody className=''>
             {tasks.map((task, id) => (
-              <TableRow key={task?._id || id} task={task} />
+              <TableRow key={task?.id || id} task={task} />
             ))}
           </tbody>
         </table>
