@@ -22,13 +22,14 @@ export const postApiSlice = apiSlice.injectEndpoints({
     }),
 
     updateTask: builder.mutation({
-      query: (data) => ({
+      query: ({ id, ...rest }) => ({
         url: `${TASKS_URL}/update/${id}`,
         method: "PUT",
-        body: data,
+        body: rest,
         credentials: "include",
       }),
     }),
+    
 
     getAllTask: builder.query({
       query: ({ strQuery, isTrashed, search }) => ({
@@ -89,13 +90,14 @@ export const postApiSlice = apiSlice.injectEndpoints({
     }),
 
     changeTaskStage: builder.mutation({
-      query: (data) => ({
-        url: `${TASKS_URL}/change-stage/${data?.id}`,
+      query: ({ id, stage }) => ({
+        url: `${TASKS_URL}/change-stage/${id}`,
         method: "PUT",
-        body: data,
+        body: { stage }, // ✅ only sending what's needed
         credentials: "include",
       }),
     }),
+    
 
     changeSubTaskStatus: builder.mutation({
       query: (data) => ({

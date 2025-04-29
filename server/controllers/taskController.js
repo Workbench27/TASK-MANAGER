@@ -1,5 +1,6 @@
 import asyncHandler from "express-async-handler";
-import { Op } from "sequelize";
+import { Op, fn, col, where } from "sequelize";
+
 import Task from "../models/taskModel.js";
 import UserModel from "../models/userModel.js";
 import { sequelize } from "../utils/connectDB.js";
@@ -13,26 +14,50 @@ Task.belongsTo(User, { foreignKey: 'userId' });
 
 const createTask = asyncHandler(async (req, res) => {
   try {
-    console.log("Request Body:", req.body);
     const { userId } = req.user;
-    const { title, stage, dueDate, priority, description } = req.body;
+    let { title, stage, dueDate, priority, description } = req.body;
 
     if (!title || !dueDate || !priority || !stage) {
-      return res.status(400).json({ status: false, message: "Title, dueDate, priority, and stage are required!" });
+      return res.status(400).json({
+        status: false,
+        message: "Title, dueDate, priority, and stage are required!",
+      });
     }
 
-    // 📢 Create notification text (you need to initialize it first)
-    let text = "New task has been assigned to you"; // Initialize text variable
-    text += ` The task priority is set as ${priority} priority. Task due date is ${new Date(dueDate).toDateString()}. Thank you!`;
+    // 🟢 Normalize inputs
+    const normalizedTitle = title.trim().toLowerCase();
+    const normalizedDescription = description.trim().toLowerCase();
+    const normalizedDueDate = new Date(dueDate).toISOString().split("T")[0];
 
-    // ✅ Create the Task
+    // 🔍 Check for duplicates (case-insensitive)
+    const duplicateTask = await Task.findOne({
+      where: {
+        userId,
+        [Op.and]: [
+          where(fn("LOWER", col("title")), normalizedTitle),
+          where(fn("LOWER", col("description")), normalizedDescription),
+          where(fn("DATE", col("dueDate")), normalizedDueDate),
+        ],
+      },
+    });
+
+    if (duplicateTask) {
+      return res.status(409).json({
+        status: false,
+        warning: true,
+        message: "Duplicate task: A task with the same title, due date, and description already exists.",
+        duplicateTask,
+      });
+    }
+
+    // 🟢 Create task
     const task = await Task.create({
-      title,
+      title: normalizedTitle,
       stage: stage.toLowerCase(),
-      dueDate: dueDate,
+      dueDate: normalizedDueDate,
       priority: priority.toLowerCase(),
-      description,
-      userId, // Ensure userId is correctly passed
+      description: normalizedDescription,
+      userId,
     });
 
     res.status(201).json({ status: true, task, message: "Task created successfully." });
@@ -41,44 +66,6 @@ const createTask = asyncHandler(async (req, res) => {
     res.status(500).json({ status: false, message: error.message });
   }
 });
-
-// controllers/taskController.js
-const checkDuplicateTask = asyncHandler(async (req, res) => {
-  try {
-    const { userId } = req.user;
-    const { title, dueDate } = req.body;
-
-    if (!title || !dueDate) {
-      return res.status(400).json({
-        status: false,
-        message: "Title and dueDate are required for duplicate check.",
-      });
-    }
-
-    const existingTask = await Task.findOne({
-      where: {
-        title,
-        dueDate,
-        userId,
-      },
-    });
-
-    if (existingTask) {
-      return res.status(200).json({
-        isDuplicate: true,
-        message: "A similar task already exists with the same title and due date.",
-      });
-    }
-
-    return res.status(200).json({ isDuplicate: false });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: false, message: error.message });
-  }
-});
-
-module.exports = { checkDuplicateTask };
-
 
 const updateTask = asyncHandler(async (req, res) => {
   try {
@@ -119,19 +106,38 @@ const updateTask = asyncHandler(async (req, res) => {
 
 const updateTaskStage = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // ✅ like updateTask
     const { stage } = req.body;
 
-    const task = await Task.findByPk(id);
-    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
+    const parsedId = parseInt(id, 10); // ✅ parse ID safely
+
+    if (isNaN(parsedId) || !stage) {
+      return res.status(400).json({
+        status: false,
+        message: "Valid task ID and stage are required.",
+      });
+    }
+
+    const task = await Task.findByPk(parsedId);
+
+    if (!task) {
+      return res.status(404).json({
+        status: false,
+        message: "Task not found.",
+      });
+    }
 
     await task.update({ stage: stage.toLowerCase() });
 
-    res.status(200).json({ status: true, message: "Task stage changed successfully." });
+    res.status(200).json({
+      status: true,
+      message: "Task stage changed successfully.",
+    });
   } catch (error) {
-    res.status(400).json({ status: false, message: error.message });
+    res.status(500).json({ status: false, message: error.message });
   }
 });
+
 
 const getTasks = asyncHandler(async (req, res) => {
   const { userId } = req.user;  // Only userId is available now
