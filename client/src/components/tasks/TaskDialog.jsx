@@ -121,13 +121,15 @@ export default function TaskDialog({ task }) {
 
   const deleteHandler = async () => {
     try {
+      console.log('Deleting task with ID:', task.id);  // Ensure you're passing task.id
+  
       const res = await deleteTask({
-        id: task._id,
-        isTrashed: "trash",
+        id: task.id,  // Use 'id' to match your MySQL column
+        isTrashed: true,  // Indicating the task should be trashed
       }).unwrap();
-
+  
       toast.success(res?.message);
-
+  
       setTimeout(() => {
         setOpenDialog(false);
         window.location.reload();
@@ -137,6 +139,7 @@ export default function TaskDialog({ task }) {
       toast.error(err?.data?.message || err.error);
     }
   };
+  
 
   const items = [
     {
@@ -164,19 +167,19 @@ export default function TaskDialog({ task }) {
               <div className='px-1 py-1 space-y-2'>
                 {items.map((el, index) => (
                   <Menu.Item key={el.label}>
-                    {({ active }) => (
-                      <button
-                        disabled={index === 0 ? false : !user.isAdmin}
-                        onClick={el?.onClick}
-                        className={`${
-                          active ? "bg-blue-500 text-white" : "text-gray-900"
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm disabled:text-gray-400`}
-                      >
-                        {el.icon}
-                        {el.label}
-                      </button>
-                    )}
-                  </Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={el?.onClick} // Remove the disabled condition
+                      className={`${
+                        active ? "bg-blue-500 text-white" : "text-gray-900"
+                      } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+                    >
+                      {el.icon}
+                      {el.label}
+                    </button>
+                  )}
+                </Menu.Item>
+                
                 ))}
               </div>
 
@@ -190,7 +193,6 @@ export default function TaskDialog({ task }) {
                 <Menu.Item>
                   {({ active }) => (
                     <button
-                      disabled={!user.isAdmin}
                       onClick={() => deleteClicks()}
                       className={`${
                         active ? "bg-red-100 text-red-900" : "text-red-900"

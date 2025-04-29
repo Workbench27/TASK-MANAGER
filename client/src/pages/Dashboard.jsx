@@ -10,7 +10,7 @@ import {
   MdKeyboardArrowUp,
   MdKeyboardDoubleArrowUp,
 } from "react-icons/md";
-import { Chart, Loading, UserInfo } from "../components";
+import { Chart, Loading } from "../components";
 import { useGetDasboardStatsQuery } from "../redux/slices/api/taskApiSlice";
 import { BGS, PRIOTITYSTYELS, TASK_TYPE, getInitials } from "../utils";
 import { useSelector } from "react-redux";
@@ -128,7 +128,6 @@ const UserTable = ({ users }) => {
           </div>
           <div>
             <p> {user.name}</p>
-            <span className='text-xs text-black'>{user?.role}</span>
           </div>
         </div>
       </td>

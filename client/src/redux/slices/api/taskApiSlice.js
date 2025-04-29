@@ -23,7 +23,7 @@ export const postApiSlice = apiSlice.injectEndpoints({
 
     updateTask: builder.mutation({
       query: (data) => ({
-        url: `${TASKS_URL}/update/${data._id}`,
+        url: `${TASKS_URL}/update/${id}`,
         method: "PUT",
         body: data,
         credentials: "include",

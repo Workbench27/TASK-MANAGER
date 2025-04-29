@@ -1,6 +1,7 @@
 import express from "express";
 import {
  createTask,
+ duplicateTask,
   dashboardStatistics,
   deleteRestoreTask,
   getTask,
@@ -15,6 +16,7 @@ import { protectRoute } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.post("/create", protectRoute, createTask);
+router.post("/duplicate/:id", protectRoute, duplicateTask);
 router.post("/activity/:id", protectRoute, postTaskActivity);
 
 router.get("/dashboard", protectRoute, dashboardStatistics);

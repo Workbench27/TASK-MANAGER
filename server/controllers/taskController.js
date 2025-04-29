@@ -3,9 +3,13 @@ import { Op } from "sequelize";
 import Task from "../models/taskModel.js";
 import UserModel from "../models/userModel.js";
 import { sequelize } from "../utils/connectDB.js";
-
 // initialize models
 const User = UserModel(sequelize);
+
+// ADD THIS ONCE — ASSOCIATION:
+User.hasMany(Task, { foreignKey: 'userId' });
+Task.belongsTo(User, { foreignKey: 'userId' });
+
 
 const createTask = asyncHandler(async (req, res) => {
   try {
@@ -38,31 +42,78 @@ const createTask = asyncHandler(async (req, res) => {
   }
 });
 
+// controllers/taskController.js
+const checkDuplicateTask = asyncHandler(async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { title, dueDate } = req.body;
+
+    if (!title || !dueDate) {
+      return res.status(400).json({
+        status: false,
+        message: "Title and dueDate are required for duplicate check.",
+      });
+    }
+
+    const existingTask = await Task.findOne({
+      where: {
+        title,
+        dueDate,
+        userId,
+      },
+    });
+
+    if (existingTask) {
+      return res.status(200).json({
+        isDuplicate: true,
+        message: "A similar task already exists with the same title and due date.",
+      });
+    }
+
+    return res.status(200).json({ isDuplicate: false });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: error.message });
+  }
+});
+
+module.exports = { checkDuplicateTask };
+
 
 const updateTask = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, date, stage, priority, assets, links, description } = req.body;
+    const { id } = req.params;  // Get the task ID from URL parameters
+    const { title, stage, dueDate, priority, description } = req.body;
 
-    const task = await Task.findByPk(id);
-    if (!task) return res.status(404).json({ status: false, message: "Task not found." });
+    // Parse the ID to ensure it's an integer
+    const parsedId = parseInt(id, 10);
 
-    const newLinks = links ? links.split(",") : [];
+    // Check if the parsed ID is a valid number
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ status: false, message: "Invalid task ID." });
+    }
 
+    // Try to find the task by primary key (id)
+    const task = await Task.findByPk(parsedId);
+
+    // If the task doesn't exist, return a 404 error
+    if (!task) {
+      return res.status(404).json({ status: false, message: "Task not found." });
+    }
+
+    // Proceed to update the task with the new values
     await task.update({
       title,
-      date,
-      team,
+      dueDate,
       stage: stage.toLowerCase(),
       priority: priority.toLowerCase(),
-      assets,
-      links: newLinks,
       description,
     });
 
     res.status(200).json({ status: true, message: "Task updated successfully." });
   } catch (error) {
-    res.status(400).json({ status: false, message: error.message });
+    console.error(error);  // Log the error to help debugging
+    return res.status(500).json({ status: false, message: error.message });
   }
 });
 
@@ -225,18 +276,18 @@ const deleteRestoreTask = asyncHandler(async (req, res) => {
 });
 
 const dashboardStatistics = asyncHandler(async (req, res) => {
-  const { userId} = req.user;
+  const { userId } = req.user;
 
   try {
     const where = {
       isTrashed: false,
+      userId, // ✅ Filter tasks by logged-in user
     };
 
     const allTasks = await Task.findAll({
       where,
       order: [["id", "DESC"]],
     });
-
 
     const groupedTasks = allTasks.reduce((result, task) => {
       const stage = task.stage;

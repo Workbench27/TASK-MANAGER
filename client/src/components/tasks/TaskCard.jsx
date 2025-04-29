@@ -53,7 +53,7 @@ const TaskCard = ({ task }) => {
             </div>
           </Link>
           <span className='text-sm text-gray-600 dark:text-gray-400'>
-            {formatDate(new Date(task?.date))}
+            {formatDate(new Date(task?.dueDate))}
           </span>
         </>
 

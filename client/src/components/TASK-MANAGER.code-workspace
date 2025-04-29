@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "opengl",
+		"files.associations": {
+			"array": "cpp",
+			"deque": "cpp",
+			"forward_list": "cpp",
+			"list": "cpp",
+			"vector": "cpp",
+			"ostream": "cpp",
+			"map": "cpp"
+		},
+		"liveServer.settings.port": 5501
+	}
+}

@@ -57,7 +57,7 @@ const Sidebar = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const path = location.pathname.split("/")[1];
-  const sidebarLinks = user?.isAdmin ? linkData : linkData.slice(0, 5);
+  const sidebarLinks = linkData
 
   const closeSidebar = () => {
     dispatch(setOpenSidebar(false));
@@ -97,10 +97,10 @@ const Sidebar = () => {
       </div>
 
       <div className=''>
-        <button className='w-full flex gap-2 p-2 items-center text-lg text-gray-800 dark:text-white'>
+        {/* <button className='w-full flex gap-2 p-2 items-center text-lg text-gray-800 dark:text-white'>
           <MdSettings />
           <span>Settings</span>
-        </button>
+        </button> */}
       </div>
     </div>
   );

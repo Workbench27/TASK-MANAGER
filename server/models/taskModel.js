@@ -1,6 +1,8 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../utils/connectDB.js'; // your Sequelize instance
 
+import UserModel from './userModel.js'; 
+const User = UserModel(sequelize);
 const Task = sequelize.define('Task', {
   title: {
     type: DataTypes.STRING,
@@ -37,5 +39,8 @@ const Task = sequelize.define('Task', {
   timestamps: true,
   tableName: 'tasks',
 });
+
+User.hasMany(Task, { foreignKey: 'userId' });
+Task.belongsTo(User, { foreignKey: 'userId' });
 
 export default Task;

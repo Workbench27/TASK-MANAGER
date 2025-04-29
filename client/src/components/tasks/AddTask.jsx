@@ -40,6 +40,7 @@ const AddTask = ({ open, setOpen, task }) => {
 
   const handleOnSubmit = async (data) => {
     try {
+      // Prepare the data for submission
       const newData = {
         title: data.title,
         dueDate: data.dueDate,
@@ -47,21 +48,30 @@ const AddTask = ({ open, setOpen, task }) => {
         stage,
         description: data.description,
       };
-
-      const res = task?.id
-        ? await updateTask({ ...newData, id: task.id }).unwrap()
-        : await createTask(newData).unwrap();
-
-      toast.success(res.message);
-
+  
+      // Check if `task.id` is available before trying to update
+      if (task?.id) {
+        // Update the task if task.id is present
+        const res = await updateTask({ ...newData, id: task.id }).unwrap();
+        toast.success(res.message);
+      } else {
+        // If task.id is not present, it's a new task, so create it
+        const res = await createTask(newData).unwrap();
+        toast.success(res.message);
+      }
+  
+      // Close the modal after the operation
       setTimeout(() => {
         setOpen(false);
       }, 500);
     } catch (err) {
+      // Log and show an error message
       console.error(err);
       toast.error(err?.data?.message || err.error);
     }
   };
+  
+  
 
   return (
     <ModalWrapper open={open} setOpen={setOpen}>
