@@ -4,6 +4,8 @@ import TaskActivity from "../models/taskActivityModel.js";
 import Task from "../models/taskModel.js";
 import UserModel from "../models/userModel.js";
 import { sequelize } from "../utils/connectDB.js";
+import sendEmail from "../utils/sendEmail.js";
+
 // initialize models
 const User = UserModel(sequelize);
 
@@ -17,6 +19,52 @@ TaskActivity.belongsTo(Task, { foreignKey: 'taskId' });
 User.hasMany(TaskActivity, { foreignKey: 'userId' });
 TaskActivity.belongsTo(User, { foreignKey: 'userId' });
 
+const sendTaskReminders = async () => {
+  try {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDateOnly = tomorrow.toISOString().split("T")[0];
+
+    const tasks = await Task.findAll({
+      where: {
+        isTrashed: false,
+        stage: { [Op.not]: "completed" },
+        dueDate: {
+          [Op.eq]: tomorrowDateOnly,
+        },
+      },
+      include: [
+        {
+          model: User,
+          attributes: ["email", "name"],
+        },
+      ],
+    });
+
+    for (const task of tasks) {
+      const user = task.User;
+      if (!user?.email) continue;
+
+      const emailHtml = `
+        <h2>Reminder: Your Task is Due Tomorrow!</h2>
+        <p><strong>Title:</strong> ${task.title}</p>
+        <p><strong>Due:</strong> ${new Date(task.dueDate).toDateString()}</p>
+        <p><strong>Priority:</strong> ${task.priority}</p>
+        <p><strong>Description:</strong> ${task.description}</p>
+      `;
+
+      await sendEmail(
+        user.email,
+        `⏰ Reminder: "${task.title}" is due tomorrow`,
+        emailHtml
+      );
+
+      console.log(`📧 Reminder sent to ${user.email} for task "${task.title}"`);
+    }
+  } catch (error) {
+    console.error("❌ Error sending task reminders:", error);
+  }
+};
 
 const createTask = asyncHandler(async (req, res) => {
   try {
@@ -112,11 +160,12 @@ const updateTask = asyncHandler(async (req, res) => {
 
 const updateTaskStage = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.params; // ✅ like updateTask
-    const { stage } = req.body;
+    const { id } = req.params; // ✅ Get task ID from URL params
+    const { stage } = req.body; // ✅ Get the new stage value
 
-    const parsedId = parseInt(id, 10); // ✅ parse ID safely
+    const parsedId = parseInt(id, 10); // ✅ Parse ID safely
 
+    // Check if ID and stage are valid
     if (isNaN(parsedId) || !stage) {
       return res.status(400).json({
         status: false,
@@ -124,6 +173,7 @@ const updateTaskStage = asyncHandler(async (req, res) => {
       });
     }
 
+    // Find the task by ID
     const task = await Task.findByPk(parsedId);
 
     if (!task) {
@@ -133,7 +183,27 @@ const updateTaskStage = asyncHandler(async (req, res) => {
       });
     }
 
-    await task.update({ stage: stage.toLowerCase() });
+   // After updating the task stage
+await task.update({ stage: stage.toLowerCase() });
+
+// Then pass updated values directly
+if (stage.toLowerCase() === 'completed') {
+  await CompletedTask.create({
+    id: task.id,
+    title: task.title,
+    createdAtDate: task.createdAtDate,
+    dueDate: task.dueDate,
+    priority: task.priority,
+    stage: stage.toLowerCase(), // ✅ use fresh value
+    description: task.description,
+    isTrashed: true, // ✅ make sure it's boolean
+    userId: task.userId,
+    createdAt: task.createdAt,
+    updatedAt: new Date(), // ✅ or use task.updatedAt if you must
+  });
+
+  await Task.destroy({ where: { id: parsedId } });
+}
 
     res.status(200).json({
       status: true,
@@ -221,84 +291,6 @@ const getTask = asyncHandler(async (req, res) => {
     res.status(500).json({ status: false, message: "Failed to fetch task" });
   }
 });
-
-
-// const getTask = asyncHandler(async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     // Parse the ID to ensure it's an integer
-//     const parsedId = parseInt(id, 10);
-
-//     // Check if the parsed ID is a valid number
-//     if (isNaN(parsedId)) {
-//       return res.status(400).json({ status: false, message: "Invalid task ID." });
-//     }
-
-//     const task = await Task.findByPk(parsedId, {
-//       include: [
-//         {
-//           model: TaskActivity,
-//           include: [
-//             {
-//               model: User,
-//               attributes: ["name", "email"],
-//             },
-//           ],
-//         },
-//       ],
-//       order: [["id", "DESC"]],
-//     });
-
-//     if (!task) {
-//       return res.status(404).json({ status: false, message: "Task not found." });
-//     }
-
-//     res.status(200).json({
-//       status: true,
-//       task,
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(400).json({ status: false, message: "Failed to fetch task" });
-//   }
-// });
-
-// const postTaskActivity = asyncHandler(async (req, res) => {
-//   try {
-//     const { id } = req.params; // task ID
-//     const { userId } = req.user; // assuming middleware adds `req.user`
-//     const { activity } = req.body;
-
-//     // Parse the ID to ensure it's an integer
-//     const parsedId = parseInt(id, 10);
-
-//     // Check if the parsed ID is a valid number
-//     if (isNaN(parsedId)) {
-//       return res.status(400).json({ status: false, message: "Invalid task ID." });
-//     }
-
-    
-//     // Validate task existence
-//     const task = await Task.findByPk(parsedId);
-//     if (!task) {
-//       return res.status(404).json({ status: false, message: 'Task not found.' });
-//     }
-
-//     // Create activity record
-//     await TaskActivity.create({
-//       taskId: task.id,
-//       userId: userId || null, // handle optional userId
-//       activity,
-//     });
-
-//     res.status(200).json({ status: true, message: 'Activity posted successfully.' });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ status: false, message: error.message });
-//   }
-// });
-
 
 const trashTask = asyncHandler(async (req, res) => {
   // Get the task ID from the URL parameters and parse it as a number
@@ -467,6 +459,7 @@ const dashboardStatistics = asyncHandler(async (req, res) => {
 
 
 export {
+  sendTaskReminders,
   createTask,
   dashboardStatistics,
   deleteRestoreTask,

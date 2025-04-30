@@ -5,9 +5,9 @@ import cookieParser from "cookie-parser";
 import { errorHandler, routeNotFound } from "./middleware/errorMiddleware.js";
 import routes from "./routes/index.js";
 import { connectToDB } from "./utils/connectDB.js";
+import './reminderScheduler.js';
 
-dotenv.config();
-
+dotenv.config(); 
 const app = express();
 const port = process.env.PORT || 8800;
 

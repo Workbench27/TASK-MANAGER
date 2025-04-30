@@ -15,7 +15,6 @@ import {
   TASK_TYPE,
   formatDate,
 } from "../../utils/index.js";
-import UserInfo from "../UserInfo.jsx";
 import { TaskColor, TaskDialog } from "./index";
 
 const ICONS = {

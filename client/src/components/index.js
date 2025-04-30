@@ -12,7 +12,6 @@ import Tabs from "./Tabs";
 import Textbox from "./Textbox";
 import Title from "./Title";
 import UserAvatar from "./UserAvatar";
-import UserInfo from "./UserInfo";
 
 export {
   Button,
@@ -30,5 +29,4 @@ export {
   Title,
   UserAction,
   UserAvatar,
-  UserInfo,
 };

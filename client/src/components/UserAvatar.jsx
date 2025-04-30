@@ -61,7 +61,7 @@ const UserAvatar = () => {
           >
             <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white dark:bg-[#1f1f1f] shadow-2xl ring-1 ring-black/5 focus:outline-none">
               <div className="p-4">
-                <Menu.Item>
+                {/* <Menu.Item>
                   {({ active }) => (
                     <button
                       onClick={() => setOpen(true)}
@@ -83,7 +83,7 @@ const UserAvatar = () => {
                       Change Password
                     </button>
                   )}
-                </Menu.Item>
+                </Menu.Item> */}
 
                 <Menu.Item>
                   {({ active }) => (

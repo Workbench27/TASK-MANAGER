@@ -40,11 +40,6 @@ const linkData = [
     icon: <MdOutlinePendingActions />,
   },
   {
-    label: "Status",
-    link: "status",
-    icon: <IoCheckmarkDoneOutline />,
-  },
-  {
     label: "Trash",
     link: "trashed",
     icon: <FaTrashAlt />,

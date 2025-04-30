@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useTrashTastMutation } from "../redux/slices/api/taskApiSlice.js";
 import { BGS, PRIOTITYSTYELS, TASK_TYPE, formatDate } from "../utils/index.js";
 
-import { Button, ConfirmatioDialog, UserInfo } from "./index";
+import { Button, ConfirmatioDialog } from "./index";
 import { AddTask, TaskColor } from "./tasks";
 import { Link } from "react-router-dom";
 
