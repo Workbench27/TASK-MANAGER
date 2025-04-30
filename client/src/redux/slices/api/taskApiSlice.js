@@ -12,15 +12,6 @@ export const postApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
-    duplicateTask: builder.mutation({
-      query: (id) => ({
-        url: `${TASKS_URL}/duplicate/${id}`,
-        method: "POST",
-        body: {},
-        credentials: "include",
-      }),
-    }),
-
     updateTask: builder.mutation({
       query: ({ id, ...rest }) => ({
         url: `${TASKS_URL}/update/${id}`,
@@ -40,21 +31,12 @@ export const postApiSlice = apiSlice.injectEndpoints({
     }),
 
     getSingleTask: builder.query({
-      query: (id) => ({
+      query: ({ id }) => ({
         url: `${TASKS_URL}/${id}`,
         method: "GET",
         credentials: "include",
       }),
-    }),
-
-    createSubTask: builder.mutation({
-      query: ({ data, id }) => ({
-        url: `${TASKS_URL}/create-subtask/${id}`,
-        method: "PUT",
-        body: data,
-        credentials: "include",
-      }),
-    }),
+    }),    
 
     postTaskActivity: builder.mutation({
       query: ({ data, id }) => ({
@@ -64,6 +46,22 @@ export const postApiSlice = apiSlice.injectEndpoints({
         credentials: "include",
       }),
     }),
+
+
+    getTaskActivities: builder.query({
+      query: ({ id }) => `${TASKS_URL}/activities/${id}`,
+      // you can transformResponse if your API nests under `activities`
+      transformResponse: (response) => response.activities || [],
+      providesTags: (result, error, { id }) =>
+        result
+          ? [
+              ...result.map(({ id: actId }) => ({ type: 'Activities', id: actId })),
+              { type: 'Activities', id }
+            ]
+          : [{ type: 'Activities', id }],
+    }),
+
+
 
     trashTast: builder.mutation({
       query: ({ id }) => ({
@@ -98,20 +96,12 @@ export const postApiSlice = apiSlice.injectEndpoints({
       }),
     }),
     
-
-    changeSubTaskStatus: builder.mutation({
-      query: (data) => ({
-        url: `${TASKS_URL}/change-status/${data?.id}/${data?.subId}`,
-        method: "PUT",
-        body: data,
-        credentials: "include",
-      }),
-    }),
   }),
 });
 
 export const {
   usePostTaskActivityMutation,
+  useGetTaskActivitiesQuery,
   useCreateTaskMutation,
   useGetAllTaskQuery,
   useTrashTastMutation,

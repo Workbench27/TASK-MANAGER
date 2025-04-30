@@ -6,6 +6,7 @@ import {
   getTask,
   getTasks,
   postTaskActivity,
+  getTaskActivities,
   trashTask,
   updateTask,
   updateTaskStage,
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.post("/create", protectRoute, createTask);
 router.post("/activity/:id", protectRoute, postTaskActivity);
+router.get("/activities/:id", protectRoute, getTaskActivities);
 
 router.get("/dashboard", protectRoute, dashboardStatistics);
 router.get("/", protectRoute, getTasks);

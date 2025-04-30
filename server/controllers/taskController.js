@@ -1,6 +1,6 @@
 import asyncHandler from "express-async-handler";
 import { Op, fn, col, where } from "sequelize";
-
+import TaskActivity from "../models/taskActivityModel.js";
 import Task from "../models/taskModel.js";
 import UserModel from "../models/userModel.js";
 import { sequelize } from "../utils/connectDB.js";
@@ -10,6 +10,12 @@ const User = UserModel(sequelize);
 // ADD THIS ONCE — ASSOCIATION:
 User.hasMany(Task, { foreignKey: 'userId' });
 Task.belongsTo(User, { foreignKey: 'userId' });
+
+Task.hasMany(TaskActivity, { foreignKey: 'taskId' });
+TaskActivity.belongsTo(Task, { foreignKey: 'taskId' });
+
+User.hasMany(TaskActivity, { foreignKey: 'userId' });
+TaskActivity.belongsTo(User, { foreignKey: 'userId' });
 
 
 const createTask = asyncHandler(async (req, res) => {
@@ -181,16 +187,25 @@ const getTasks = asyncHandler(async (req, res) => {
 const getTask = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
+    const parsedId = parseInt(id, 10);
 
-    const task = await Task.findByPk(id, {
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ status: false, message: "Invalid task ID." });
+    }
+
+    const task = await Task.findByPk(parsedId, {
       include: [
         {
-          model: User,
-          as: "teamMembers", // define proper association in models
-          attributes: ["name", "title", "role", "email"],
+          model: TaskActivity,
+          include: [
+            {
+              model: User,
+              attributes: ["name", "email"],
+            },
+          ],
+          order: [["id", "DESC"]], // Order TaskActivity by id DESC
         },
       ],
-      order: [["id", "DESC"]],
     });
 
     if (!task) {
@@ -203,28 +218,86 @@ const getTask = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(400).json({ status: false, message: "Failed to fetch task" });
+    res.status(500).json({ status: false, message: "Failed to fetch task" });
   }
 });
 
-const postTaskActivity = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { userId } = req.user;
-  const { type, activity } = req.body;
 
-  try {
-    const task = await Task.findByPk(id);
+// const getTask = asyncHandler(async (req, res) => {
+//   try {
+//     const { id } = req.params;
 
-    const activities = task.activities || [];
-    activities.push({ type, activity, by: userId });
+//     // Parse the ID to ensure it's an integer
+//     const parsedId = parseInt(id, 10);
 
-    await task.update({ activities });
+//     // Check if the parsed ID is a valid number
+//     if (isNaN(parsedId)) {
+//       return res.status(400).json({ status: false, message: "Invalid task ID." });
+//     }
 
-    res.status(200).json({ status: true, message: "Activity posted successfully." });
-  } catch (error) {
-    return res.status(400).json({ status: false, message: error.message });
-  }
-});
+//     const task = await Task.findByPk(parsedId, {
+//       include: [
+//         {
+//           model: TaskActivity,
+//           include: [
+//             {
+//               model: User,
+//               attributes: ["name", "email"],
+//             },
+//           ],
+//         },
+//       ],
+//       order: [["id", "DESC"]],
+//     });
+
+//     if (!task) {
+//       return res.status(404).json({ status: false, message: "Task not found." });
+//     }
+
+//     res.status(200).json({
+//       status: true,
+//       task,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(400).json({ status: false, message: "Failed to fetch task" });
+//   }
+// });
+
+// const postTaskActivity = asyncHandler(async (req, res) => {
+//   try {
+//     const { id } = req.params; // task ID
+//     const { userId } = req.user; // assuming middleware adds `req.user`
+//     const { activity } = req.body;
+
+//     // Parse the ID to ensure it's an integer
+//     const parsedId = parseInt(id, 10);
+
+//     // Check if the parsed ID is a valid number
+//     if (isNaN(parsedId)) {
+//       return res.status(400).json({ status: false, message: "Invalid task ID." });
+//     }
+
+    
+//     // Validate task existence
+//     const task = await Task.findByPk(parsedId);
+//     if (!task) {
+//       return res.status(404).json({ status: false, message: 'Task not found.' });
+//     }
+
+//     // Create activity record
+//     await TaskActivity.create({
+//       taskId: task.id,
+//       userId: userId || null, // handle optional userId
+//       activity,
+//     });
+
+//     res.status(200).json({ status: true, message: 'Activity posted successfully.' });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ status: false, message: error.message });
+//   }
+// });
 
 
 const trashTask = asyncHandler(async (req, res) => {
@@ -256,6 +329,72 @@ const trashTask = asyncHandler(async (req, res) => {
   }
 });
 
+const postTaskActivity = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params; // task ID from URL
+    const { userId } = req.user; // populated from middleware
+    const { activity, type } = req.body; // now expecting `type` too
+
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ status: false, message: "Invalid task ID." });
+    }
+
+    const task = await Task.findByPk(parsedId);
+    if (!task) {
+      return res.status(404).json({ status: false, message: 'Task not found.' });
+    }
+
+    await TaskActivity.create({
+      taskId: task.id,
+      userId: userId || null,
+      activity,
+      type: type?.toLowerCase() || 'assigned', // fallback to "assigned"
+    });
+
+    res.status(200).json({ status: true, message: 'Activity posted successfully.' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ status: false, message: error.message });
+  }
+});
+
+const getTaskActivities = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;  // task ID from URL
+    const parsedId = parseInt(id, 10);
+
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ status: false, message: "Invalid task ID." });
+    }
+
+    // Fetch task activities
+    const activities = await TaskActivity.findAll({
+      where: {
+        taskId: parsedId,
+      },
+      include: [
+        {
+          model: User,
+          attributes: ["name", "email"], // User details (Assuming you want them)
+        },
+      ],
+      order: [["id", "DESC"]],  // Sort activities by ID descending
+    });
+
+    if (!activities || activities.length === 0) {
+      return res.status(404).json({ status: false, message: "No activities found." });
+    }
+
+    res.status(200).json({
+      status: true,
+      activities,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: "Failed to fetch task activities" });
+  }
+});
 
 const deleteRestoreTask = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -334,6 +473,7 @@ export {
   getTask,
   getTasks,
   postTaskActivity,
+  getTaskActivities,
   trashTask,
   updateTask,
   updateTaskStage,
